@@ -117,7 +117,7 @@ invité:
 
 
 
-5)
+## 5) Déconnectez-vous du conteneur et lancer dans l’invité les commandes précédentes depuis l’hôte
  a) ? 
 
 b) État du filesystem de l’invité, que remarquez-vous (cf item 3.b)
@@ -168,3 +168,11 @@ PID TTY          TIME CMD
   265 pts/3    00:00:00 ps
  Par conséquent, il manque sudo et bash sur l'invité
 
+## Limitation de ressources en ligne de commande
+
+modifier les ressources du conteneur comme suit:
+* mémoire limitée à 256 Mo
+* Utilisation de 50% maximum du processeur
+
+lxc-cgroup -n container_bionic  memory.soft_limit_in_bytes 268435456
+lxc-cgroup -n container_bionic cpuset.cpus 0,1   (si j'ai 4 coeurs)
