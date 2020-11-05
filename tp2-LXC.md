@@ -175,4 +175,48 @@ modifier les ressources du conteneur comme suit:
 * Utilisation de 50% maximum du processeur
 
 lxc-cgroup -n container_bionic  memory.soft_limit_in_bytes 268435456
-lxc-cgroup -n container_bionic cpuset.cpus 0,1   (si j'ai 4 coeurs)
+
+affichage du résultat sur  l'invité
+
+lxc-attach -n container_bionic -- cat /sys/fs/cgroup/memory/memory.soft_limit_in_bytes
+
+/sys/fs/cgroup/cpuset
+
+
+lxc-attach -n container_bionic
+cat /sys/fs/cgroup/cpuset/cpuset.cpus
+
+
+
+limits.cpu.allowance 
+
+lxc-cgroup -n container_bionic cpuset.cpus 0,1
+
+lxc-cgroup -n container_bionic memory.memsw.usage_in_bytes	
+
+lxc-cgroup -n ol6ctr1 cpuset.cpus 0,1
+
+cpuinfo=1 core
+
+/etc/default/grub
+remplacer
+GRUB_CMDLINE_LINUX=""
+
+par
+GRUB_CMDLINE_LINUX="cgroup_enable=memory"
+
+
+cat /proc/self/cgroup
+
+
+## maj de grub
+sudo update-grub
+
+## autoriser la modificiation du cpu 
+### remplacer 
+/etc/pam.d/common-session
+session	optional	pam_cgfs.so -c freezer,memory,name=systemd,cpu,cpuset
+
+### par
+/etc/pam.d/common-session-noninteractive
+session	optional	pam_cgfs.so -c freezer,memory,name=systemd,cpu,cpuset
