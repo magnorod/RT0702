@@ -16,6 +16,7 @@ sudo lxc-create -t download -n container_bionic -- -d ubuntu -r bionic -a amd64
 
 
 
+
 ###  1) Récupérez la liste des conteneurs utilisables sur la machine
 
 lxc-ls -f
@@ -174,49 +175,85 @@ modifier les ressources du conteneur comme suit:
 * mémoire limitée à 256 Mo
 * Utilisation de 50% maximum du processeur
 
-lxc-cgroup -n container_bionic  memory.soft_limit_in_bytes 268435456
+### modification de GRUB
+dans /etc/default/grub
+GRUB_CMDLINE_LINUX="cgroup_enable=memory,cpu"
 
-affichage du résultat sur  l'invité
+### maj de grub
+sudo update-grub
+
+### mémoire limitée à 256 Mo
+lxc-cgroup -n container_bionic  memory.limit_in_bytes 268435456
 
 lxc-attach -n container_bionic -- cat /sys/fs/cgroup/memory/memory.soft_limit_in_bytes
 
-/sys/fs/cgroup/cpuset
+### processeur limité à max 50 %
+
+lxc-cgroup -n container_bionic cpu.cfs_quota_us 500000 (500ms)
+lxc-cgroup -n container_bionic cpu.cfs_period_us 1000000 (1000ms)
+%cpu = quota / period = 500 / 1000 = 0,5 qui en % donne 50%
+
+vmstat -w 1
+permet de voir l'utilisation du cpu
+
+## Gestion du réseau en mode physique
+mettre le réseau en mode physique
+
+ajout d'une carte réseau sur la VM Ubuntu proxmox
+
+ajout d'une adresse ip à l'interface physique
 
 
-lxc-attach -n container_bionic
-cat /sys/fs/cgroup/cpuset/cpuset.cpus
+fichier de config:
+nano /var/lib/lxc/container_bionic/config
+
+lxc.net.0.type = phys
+lxc.net.0.link = ens19
+lxc.net.0.hwaddr = ce:6a:d9:34:af:bb
+lxc.net.0.flags = up
+
+### ajout d'une adresse ip à la nouvemme interface
+
+nano /etc/netplan/10-lxc.yaml
+ ens19:
+      addresses: [172.18.10.20/24]
+      gateway4: 172.18.10.254
+
+puis sudo netplan apply
+
+
+## installation d'un package apache dans le conteneur
+apt install apache2 -y
+
+on accède au site internet depuis 172.18.10.20:80
+
+## Limitation de ressources dans le fichier de configuration 
+
+nano /var/lib/lxc/container_bionic/config
+
+
+Memory limit to 256 Mo
+lxc.cgroup.memory.limit_in_bytes=268435456
+
+Utilisation de 50 pourcent du processeur
+lxc.cgroup.cpu.cfs_quota_us=500000
+lxc.cgroup.cpu.cfs_period_us=1000000
 
 
 
-limits.cpu.allowance 
-
-lxc-cgroup -n container_bionic cpuset.cpus 0,1
-
-lxc-cgroup -n container_bionic memory.memsw.usage_in_bytes	
-
-lxc-cgroup -n ol6ctr1 cpuset.cpus 0,1
-
-cpuinfo=1 core
-
-/etc/default/grub
-remplacer
-GRUB_CMDLINE_LINUX=""
-
-par
-GRUB_CMDLINE_LINUX="cgroup_enable=memory"
+## Scripting
 
 
-cat /proc/self/cgroup
+sudo /bin/bash script.sh ubuntu-test ubuntu bionic ens19 172.18.10.20 172.18.10.254
 
 
-## maj de grub
-sudo update-grub
+ 
 
-## autoriser la modificiation du cpu 
-### remplacer 
-/etc/pam.d/common-session
-session	optional	pam_cgfs.so -c freezer,memory,name=systemd,cpu,cpuset
 
-### par
-/etc/pam.d/common-session-noninteractive
-session	optional	pam_cgfs.so -c freezer,memory,name=systemd,cpu,cpuset
+
+
+
+
+
+
+
