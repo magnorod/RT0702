@@ -28,16 +28,24 @@ le mode graphique SDL (Simple Direct Media Layer) est activé par défaut
 
 Lancement de l'image Alpine:
 
+* mémoire de 256 MO
+* utilisation de curses pour la sortie video
+* la langue du clavier sera le même que celle de l'hôte (pour l'autoboot)
+* le système bootera sur d qui correspond par défaut au first CD-ROM
+* le disque alpine.img sera utilisé pour stocker la VM alpine
+* utilisation du mode user
+* création d'une interface
 
-qemu-system-x86_64 
- -m 256  mémoire de 256 MO
- -display curses  utilisation de curses pour la sortie video
- -k fr-ca \ clavier français-canadien
- -boot d \ le système bootera sur d (first CD-ROM)
- -cdrom alpine-standard-3.12.1-x86_64.iso \ chemin du fichier iso
- -drive file=./alpine.img,format=qcow2 \ défini un nouveau disque au format qcow2
- -net user \ utilisation du user mode network
- -net nic \ création d'une nouvelle interface
+
+
+qemu-system-x86_64 \ 
+ -m 256 \
+ -display curses \
+ -boot d \ 
+ -cdrom alpine-standard-3.12.1-x86_64.iso \ 
+ -drive file=./alpine.img,format=qcow2 \ 
+ -net user \ 
+ -net nic
 
 
 qemu-system-x86_64 -m 256 -display curses -boot d -cdrom alpine-standard-3.12.1-x86_64.iso -drive file=alpine.img,format=qcow2 -net user -net nic
@@ -91,19 +99,38 @@ on obtient OK donc accès vers l'extérieur possible
 
 ## Question 4
 
+Installez  dans  la machine  virtuelle  un  serveur  SSH  et  un  serveur  Apache.  Proposez  une  commande  de lancement de la machine virtuelle permettant de relayer:
+* Un port de l'hôte vers le port 22 de l'invité
+* Un port de l'hôtevers le port 80 de l'invité. 
+
+
+### installation d'un serveur ssh et d'apache
+
 * apk add openssh-server && apk add apache2
 * apk update
 
-adduser -h /home/user1 -s /bin/sh -G user1
+rc-service apache2 restart
+### création d'un utilisateur sur la VM alpine
+
+Comme par défaut il n'est pas possible de se connecter en root en ssh, je crée un nouvel utilisateur:
+
+* adduser -h /home/user1 -s /bin/sh -G user1
+
+/home/*/public_html
+
+qemu-system-x86_64 -k fr -m 256 -net nic -net user,hostfwd=tcp::8080-:80,hostfwd=tcp::2222-:22 -hda alpine.img -display curses 
 
 
-Pour activer ce forward de port, il faut changer le mode réseau de la VM
 
-tcp:2222::20
-tcp:8080::80 
-
-qemu-system-x86_64 -k fr -m 256 -net nic -net user,hostfwd=tcp::8080-:80  -hda alpine.img -display curses  OK pour http
-
+* curl -I http://172.18.10.19:8080 | grep HTTP | awk {print $2}
 ![](tp3-img/http-ok-sc.png)
 
-curl -I http://172.18.10.19:8080 | grep HTTP | awk {print $2}
+
+
+* ssh -P 2222 user1@172.18.10.19
+![](tp3-img/ssh-ok.png)
+
+## Question 5
+
+Réalisez deux clones liés(rebase) de votre machine virtuelle.Testez les machines que vous pouvez lancer simultanément.
+
