@@ -134,3 +134,78 @@ qemu-system-x86_64 -k fr -m 256 -net nic -net user,hostfwd=tcp::8080-:80,hostfwd
 
 Réalisez deux clones liés(rebase) de votre machine virtuelle.Testez les machines que vous pouvez lancer simultanément.
 
+
+rebase [-f fmt] [-t cache] [-p] [-u] -b backing_file [-F backing_fmt] filename
+
+-f = format du dique
+-p = afficher une barre de progression
+
+qemu-img rebase -f qcow2 -p -b alpine.img -F qcow2 alpine2.img  
+
+### Création de 2 nouveaux disques
+
+Création de 2 nouveaux disques en utilisant l'image alpine.img comme backing file (image de base)
+
+installation de nmap et dhclient sur alpine.img
+
+
+* qemu-img create -f qcow2 -F qcow2 -b alpine.img alpine-clone1-lie.img
+* qemu-img create -f qcow2 -F qcow2 -b alpine.img alpine-clone2-lie.img
+
+ 
+
+ Remarque: la commande **qemu-img rebase** permet de changer le backing file (l'image de base) d'une image.
+
+
+ Il est impossible de lancer en même temps les 3 machines car alpine-clone1-lie.img et alpine-clone2-lie.img sont basées
+ sur l'image alpine.img .En revanche il est possible de lancer les 2 clones en même temps (alpine.img ne doit pas être utilisée directement).
+
+ ## Question 6
+
+
+### Lancement des 2 clones en mode SLIRP
+
+SLIRP est équivalent à -net nic et -net user (par défaut)
+
+
+
+* qemu-system-x86_64 -k fr -m 256 -hda alpine-clone1-lie.img -display curses 
+* qemu-system-x86_64 -k fr -m 256 -hda alpine-clone2-lie.img -display curses 
+
+Sur le clone2, on va demander une nouvelle adresse ip car les 2 machines on a même ip
+
+Installation du paquet dhclient:
+
+* apk add dhclient
+
+libération de cette adresse ip en suppri
+* dhclient -r -v eth0
+
+![](tp3-img/dhcp-suppr-bail.png)
+
+demande d'une adresse ip
+* dhclient -v eth0
+
+![](tp3-img/dhcp-new-adress.png)
+
+On constate que l'interface eth0 du clone2 obtient la même ip qu'avant. Cela signifie que le clone 1 et le clone 2 sont dans des réseaux différents.
+
+### Lancement des 2 clones dans le même réseau
+
+* qemu-system-x86_64 -k fr -m 256 -hda alpine-clone1-lie.img -display curses -netdev user,id=mynet0,net=192.168.76.0/24,dhcpstart=192.168.76.9 -device e1000,netdev=mynet0
+
+* qemu-system-x86_64 -k fr -m 256 -hda alpine-clone2-lie.img -display curses -netdev user,id=mynet0,net=192.168.76.0/24,dhcpstart=192.168.76.10 -device e1000,netdev=mynet0
+
+
+
+qemu-system-x86_64 -k fr -m 256  -hda alpine-clone1-lie.img -display curses  -net nic -netdev tap,ifname=tap0,script=no,net=192.168.76.0/24,dhcpstart=192.168.76.9  -device e1000,netdev=mynet0
+
+suppression de l'adresse affectée par le dhcp sur le clone2
+* dhclient -r -v eth0
+
+nouvelle adresse statique
+* ip addr add 10.0.2.16/24 dev eth0
+* ip route add default via 10.0.2.2
+
+ ifconfig eth0 hw ether 52:54:00:12:34:57
+
