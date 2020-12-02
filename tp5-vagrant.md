@@ -1,11 +1,11 @@
 # TP5 Vagrant
 
-## Q1)Installation de Vagrant
+## Q1) Installation de Vagrant
 
 ### Téléchargement et installation
 * sudo apt-get install vagrant -y
 
-### Q2) 
+### Q2) Installation de la VM
 
 Rechercher une distrib prise en charge par Vagrant
 * https://app.vagrantup.com/boxes/search
@@ -54,7 +54,7 @@ fichier partagé
 
 ![](tp5-img/partage.png)
 
-## Q3)
+## Q3) Modifier la config de la machine pour qu'elle démarre en GUI
 
 
 Pour utiliser le mode GUI virtualbox doit être installé !
@@ -67,7 +67,7 @@ modifier le Vagrantfile
 
 ![](tp5-img/vagrant-virtualbox.png)
 
-## Q4)
+## Q4) Tester les différents modes réseau
 
 3 modes réseau
 
@@ -104,7 +104,8 @@ puis
 ![](tp5-img/private-network.png)
 
 
-coté hôte on remarque qu'une interface est créée
+coté hôte on remarque qu'une interface est créée.
+cette interface servira de passerelle à la machine invité
 
 ![](tp5-img/host.png)
 
@@ -139,7 +140,7 @@ Utilisation d'un bridge sur l'interface de la carte wi-fi wlp2s0
 |hote|invité| ok|
 |invite|hote|ok
 
-## Q5)
+## Q5) Installer un serveur web 
 
 utilisation du mode réseau forward de port dans le Vagrantfile
 * config.vm.network "forwarded_port", guest: 80, host: 8080
@@ -156,6 +157,64 @@ test sur l'hôte:
 ![](tp5-img/web-host.png)
 
 
+## Q6)  Accéder à  l'invité en SSH depuis l'hôte
 
+Toutes les configurations réseaux permettent de se connecter à l'invité:
+
+### mode forward de port
+
+Au niveau du vagrantfile
+
+config.vm.network "forwarded_port", guest: 22, host: 2222, host_ip: "192.168.1.27"
+
+dans /etc/ssh/sshd_config sur la vm ubuntu:
+
+* PasswordAuthentication yes
+
+se connecter avec id et mdp vagrant
+
+* ssh vagrant@192.168.1.27 -p 2222
+
+### mode reseau prive
+
+* ssh vagrant@192.168.50.4 -p 22
+
+192.168.50.4 correspond à l'adresse renseignée dans le vagrantfile
+
+### mode reseau public
+
+* ssh vagrant@192.168.1.71 -p 22
+192.168.1.71 correspond à une adresse de mon réseau physique qui est en 192.168.1.0/24
+
+## Q7) Détruire la VM
+* vagrant destroy -f
+
+## Q8) Ajout interface + provisionning
+
+* vagrant init "ubuntu/bionic64"
+
+modif du Vagrantfile
+
+coté réseau
+
+* config.vm.network "public_network"
+* config.vm.network "private_network", ip: "192.168.50.4"
+
+coté provisionning:
+
+![](tp5-img/shell.png)
+
+
+configuration réseau sur l'invité:
+
+![](tp5-img/q9-guest.png)
+
+test accès serveur web depuis l'invité :
+
+![](tp5-img/q9-site-guest.png)
+
+test accès serveur web depuis l'hôte:
+
+![](tp5-img/q9-site-host.png)
 
 
